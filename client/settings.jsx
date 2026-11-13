@@ -3,6 +3,7 @@ import React from 'react'
 import { saveSettings, setDesk, testImage, useDesk } from './desk.js'
 import { t, useLang } from './i18n.js'
 import { Dialog, Icon } from './ui.jsx'
+import { useWorkbench } from './workbench.jsx'
 
 // 常见服务的 OpenAI 兼容地址，模型名以各家文档为准。label 是中文原文，显示时再翻译
 const PRESETS = [
@@ -26,6 +27,7 @@ const LANGUAGES = [
 
 export function SettingsDialog() {
   useLang()
+  const { pickDirectory } = useWorkbench()
   const open = useDesk(s => s.settingsOpen)
   const settings = useDesk(s => s.settings)
   const [form, setForm] = React.useState(null)
@@ -61,10 +63,16 @@ export function SettingsDialog() {
             ))}
           </div>
         </div>
-        <label className="md-field">
+        <div className="md-field">
           <span>{t('成稿保存到')}</span>
-          <input value={form.exportDir} onChange={e => set('exportDir', e.target.value)} placeholder={settings.defaultExportDir} />
-        </label>
+          <div className="md-export-dir">
+            <input aria-label={t('成稿保存到')} value={form.exportDir} readOnly placeholder={settings.defaultExportDir} />
+            <button type="button" className="md-btn" onClick={async () => {
+              const folder = await pickDirectory()
+              if (folder) set('exportDir', folder)
+            }}><Icon name="folder" size={14} />{t('选择文件夹')}</button>
+          </div>
+        </div>
 
         <div className="md-field">
           <span>{t('生图来源')}</span>

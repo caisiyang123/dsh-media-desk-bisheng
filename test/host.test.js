@@ -829,25 +829,35 @@ test('Monid：重复导入只更新数字，示例数据退出统计，没有播
   assert.match(postsToMaterial(posts), /第一条\n正文/)
 })
 
-test('Monid：不经过 shell，混着提示也能解析，出错时读得到错误', async () => {
+test('Monid：不经过 shell，混着提示也能解析，出错时读得到错误，且不继承宿主密钥', async () => {
   const { createMonidRunner } = await import('../src/monid.js')
   const located = async () => ({ bin: '/x/monid', path: '/x' })
-  let seen
-  const noisy = createMonidRunner((bin, args, options, callback) => {
-    seen = { bin, args, options }
-    callback(null, '有新版本可用\n{"balance":{"value":1}}\n', '')
-  }, located)
-  const injected = '$(touch /tmp/pwned); --query'
-  assert.deepEqual(await noisy(['run', injected]), { balance: { value: 1 } })
-  assert.equal(seen.bin, '/x/monid')
-  assert.deepEqual(seen.args, ['run', injected])
-  assert.equal(seen.options.shell, undefined)
-  assert.equal(seen.options.env.NO_COLOR, '1')
-  const failing = createMonidRunner((bin, args, options, callback) => callback(new Error('exit 1'), '{"error":{"code":"AUTH_FAILED"}}', ''), located)
-  assert.equal((await failing(['balance', '-j'])).error.code, 'AUTH_FAILED')
-  const broken = createMonidRunner((bin, args, options, callback) => callback(new Error('exit 1'), '', '坏了'), located)
-  await assert.rejects(broken(['balance', '-j']), /坏了/)
-  assert.equal(await createMonidRunner(() => assert.fail('不该运行'), async () => null)(['balance', '-j']), null)
+  process.env.DSH_TEST_MONID_HOST_SECRET = 'do-not-pass-to-child'
+  process.env.MONID_TEST_SETTING = 'monid-setting-is-allowed'
+  try {
+    let seen
+    const noisy = createMonidRunner((bin, args, options, callback) => {
+      seen = { bin, args, options }
+      callback(null, '有新版本可用\n{"balance":{"value":1}}\n', '')
+    }, located)
+    const injected = '$(touch /tmp/pwned); --query'
+    assert.deepEqual(await noisy(['run', injected]), { balance: { value: 1 } })
+    assert.equal(seen.bin, '/x/monid')
+    assert.deepEqual(seen.args, ['run', injected])
+    assert.equal(seen.options.shell, undefined)
+    assert.equal(seen.options.env.NO_COLOR, '1')
+    assert.equal(seen.options.env.PATH, '/x')
+    assert.equal(seen.options.env.DSH_TEST_MONID_HOST_SECRET, undefined)
+    assert.equal(seen.options.env.MONID_TEST_SETTING, 'monid-setting-is-allowed')
+    const failing = createMonidRunner((bin, args, options, callback) => callback(new Error('exit 1'), '{"error":{"code":"AUTH_FAILED"}}', ''), located)
+    assert.equal((await failing(['balance', '-j'])).error.code, 'AUTH_FAILED')
+    const broken = createMonidRunner((bin, args, options, callback) => callback(new Error('exit 1'), '', '坏了'), located)
+    await assert.rejects(broken(['balance', '-j']), /坏了/)
+    assert.equal(await createMonidRunner(() => assert.fail('不该运行'), async () => null)(['balance', '-j']), null)
+  } finally {
+    delete process.env.DSH_TEST_MONID_HOST_SECRET
+    delete process.env.MONID_TEST_SETTING
+  }
 })
 
 test('Monid：封面存到本地，内网地址、非图片和已有封面都跳过', async () => {

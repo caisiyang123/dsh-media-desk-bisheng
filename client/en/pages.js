@@ -235,6 +235,7 @@ export const PAGES = {
   设置: 'Settings',
   语言: 'Language',
   成稿保存到: 'Save drafts to',
+  '选择文件夹': 'Choose folder',
   生图模型: 'Image model',
   '支持 OpenAI 兼容图片接口（/images/generations），以及阿里云百炼的千问同步接口和万相异步接口。': 'Works with OpenAI-compatible image APIs (/images/generations), plus Alibaba Bailian Qwen sync and Wan async endpoints.',
   接口地址: 'Endpoint',

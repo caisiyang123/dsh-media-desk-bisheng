@@ -1,4 +1,5 @@
-// dsh-media-desk host 半片：/media-desk/* 接口、文件服务和模型调用。
+// dsh-media-desk-bisheng host 半片：/media-desk/* 接口、文件服务和模型调用。
+import Schema from '@deepseek-ai/schemastery'
 import { createReadStream } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { stat, writeFile } from 'node:fs/promises'
@@ -19,6 +20,10 @@ import { normalizeStyle, referenceExcerpt, stylePrompts } from './style.js'
 import { dshHome, Store } from './store.js'
 import { currentLang, platformName, tr, withLang } from './i18n.js'
 import { localizeSamples, samplesNeedLocale } from './seed.js'
+import { registerMediaWorkbenchTool, WORKBENCH_SYSTEM_PROMPT } from './workbench-tool.js'
+import { OWNER, WorkbenchSessions, createOwnershipGuard } from './workbench.js'
+
+export { OWNER } from './workbench.js'
 
 const ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets')
 const MAX_JSON = 4_000_000
@@ -296,6 +301,12 @@ async function route(ctx, store, desk, req, res) {
     return sendFile(req, res, join(store.filesDir, name))
   }
   if (method === 'GET') {
+    if (path === 'workbench') {
+      const provided = url.searchParams.has('session_id')
+      const sessionId = url.searchParams.get('session_id')
+      if (provided) await desk.own(sessionId)
+      return json(res, 200, await desk.workbench.snapshot(provided ? sessionId : 'sandbox'))
+    }
     if (path === 'state') {
       if (!desk.settled) { desk.settled = true; await desk.producer.settleAll().catch(() => {}) }
       let state = await store.read()
@@ -338,6 +349,14 @@ async function route(ctx, store, desk, req, res) {
   if (path === 'upload') return handleUpload(req, store, res)
   const body = await readJson(req)
   switch (path) {
+    case 'workbench': {
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return json(res, 400, { error: tr('请求必须是对象') })
+      const provided = Object.hasOwn(body, 'session_id')
+      const sessionId = provided ? body.session_id : 'sandbox'
+      if (provided) await desk.own(sessionId)
+      const { session_id: _ignored, ...patch } = body
+      return json(res, 200, await desk.workbench.sync(sessionId, patch))
+    }
     case 'ops': {
       const label = typeof body.label === 'string' ? body.label : tr('操作')
       const result = await store.mutate(label, (draft) => {
@@ -367,6 +386,10 @@ async function route(ctx, store, desk, req, res) {
       return json(res, 200, { state: await store.read() })
     case 'produce/save': {
       const settings = await desk.settings.read()
+      // 保存位置必须由用户在当前工作台明确选择，不能静默写入默认目录。
+      if (typeof settings.exportDir !== 'string' || !settings.exportDir.trim()) {
+        return json(res, 400, { error: tr('请先在工作台选择保存文件夹') })
+      }
       const state = await store.read()
       const item = state.items.find(row => row.id === body.id)
       if (!item?.production?.article) return json(res, 400, { error: tr('还没有可以保存的成稿') })
@@ -455,41 +478,59 @@ export function requestRejection(ctx, req) {
   return connection.requestRejection({ headers: req.headers })
 }
 
-export const name = 'dsh-media-desk'
+export const name = 'dsh-media-desk-bisheng'
+export const inject = ['webServer', 'connection', 'tools', 'desktopWorkbenchOwnership', 'systemPrompt']
+export const Config = Schema.object({ root: Schema.string().required() })
 
-export default {
-  inject: ['webServer', 'connection'],
-  apply(ctx) {
-    const store = new Store()
-    const settings = new Settings(store.root)
-    const producer = new Producer({
-      store, settings, callText: options => callModel(ctx, options),
-      ready: saved => imageReady(saved, Boolean(imageTool(ctx))),
-      generate: (image, prompt, options) => image.source === 'tool' ? generateToolImage(ctx, image, prompt, options) : generateImage(image, prompt, options),
+export function apply(ctx, config = {}) {
+  const store = new Store(config.root || undefined)
+  const settings = new Settings(store.root)
+  const workbench = new WorkbenchSessions(store.root)
+  const own = createOwnershipGuard(ctx)
+  const producer = new Producer({
+    store, settings, callText: options => callModel(ctx, options),
+    ready: saved => imageReady(saved, Boolean(imageTool(ctx))),
+    generate: (image, prompt, options) => image.source === 'tool' ? generateToolImage(ctx, image, prompt, options) : generateImage(image, prompt, options),
+  })
+  const monid = createMonidRunner()
+  const desk = { settings, producer, monid, workbench, own }
+  // 正式 BISHENG 由 inject 保证这些服务存在；旧上游单测的精简 mock 可以只测原路由。
+  if (typeof ctx.tools?.register === 'function') {
+    registerMediaWorkbenchTool({
+      ctx, store, settings, producer, workbench, own,
+      model: () => engineLabel(ctx),
     })
-    const monid = createMonidRunner()
-    const desk = { settings, producer, monid }
-    // 启动时恢复用户在工作台里选过的助手模型
-    settings.read().then(saved => setAssistantModel(saved.assistant)).catch(() => {})
-    ctx.effect(() => ctx.webServer.register({
-      kind: 'prefix',
-      path: '/media-desk',
-      handler: async (req, res) => {
-        try {
-          const rejection = requestRejection(ctx, req)
-          if (rejection) {
-            json(res, rejection, { error: tr('未授权') })
-            return
-          }
-          await withLang(req.headers['x-media-desk-lang'], () => route(ctx, store, desk, req, res))
-        } catch (err) {
-          if (res.headersSent) {
-            res.end()
-            return
-          }
-          json(res, err.status || 500, { error: err.message })
+  }
+  if (typeof ctx.systemPrompt?.section === 'function') {
+    ctx.systemPrompt.section({
+      name: 'media-desk-bisheng:workbench-tools',
+      order: 10210,
+      text: WORKBENCH_SYSTEM_PROMPT,
+    })
+  }
+  // 启动时恢复用户在工作台里选过的助手模型
+  settings.read().then(saved => setAssistantModel(saved.assistant)).catch(() => {})
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: '/media-desk',
+    handler: async (req, res) => {
+      try {
+        const rejection = requestRejection(ctx, req)
+        if (rejection) {
+          json(res, rejection, { error: tr('未授权') })
+          return
         }
-      },
-    }), 'dsh-media-desk: /media-desk routes')
-  },
+        await withLang(req.headers['x-media-desk-lang'], () => route(ctx, store, desk, req, res))
+      } catch (err) {
+        if (res.headersSent) {
+          res.end()
+          return
+        }
+        json(res, err.status || 500, { error: err.message })
+      }
+    },
+  }), 'dsh-media-desk-bisheng: /media-desk routes')
 }
+
+// 保留原有默认导出，同时让 BISHENG 的命名导出契约可直接消费。
+export default { name, OWNER, inject, Config, apply }

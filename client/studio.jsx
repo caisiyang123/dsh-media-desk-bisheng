@@ -1,10 +1,11 @@
-// 点开灵感后的工作区：左边对话，右边是一张稿面。稿面的格子一开始就排好，同时开工，一点点长满。
+// 点开灵感后的工作区：窄控制栏 + 稿面，修改建议交给宿主原生 Chat。
 import React from 'react'
-import { ChatPanel } from './chat.jsx'
 import { downloadCover } from './cover.js'
-import { cancelProduce, closeItem, dispatchOps, regenAsset, revealSaved, runProduce, saveProduced, setDesk, toast, useDesk, watchProduction } from './desk.js'
+import { cancelProduce, closeItem, dispatchOps, regenAsset, revealSaved, runProduce, saveProduced, saveSettings, setDesk, toast, useDesk, watchProduction } from './desk.js'
 import { plural, t } from './i18n.js'
 import { Icon, IconButton } from './ui.jsx'
+import { saveProducedWithDirectory } from './save.js'
+import { useWorkbench } from './workbench.jsx'
 import { SPRING_SNAP, SPRING_SOFT, STYLE_CATEGORIES, fmtDate, fmtWhen, reducedMotion, renderMarkdown, styleIcon, textLength, toLocalInput } from './util.js'
 
 const isBusy = asset => ['pending', 'running'].includes(asset?.status)
@@ -33,8 +34,9 @@ function AutoText({ value, onCommit, className, label, disabled }) {
   )
 }
 
-function askAbout(label, text = '') {
-  setDesk({ chatQuote: { label, text }, studioDock: true })
+function askAbout(askAgent, focusId, label, text = '') {
+  const selection = text ? `\n${t('选段：「{text}」', { text })}` : ''
+  return askAgent(t('请根据定位修改当前成稿，并在修改后同步工作台。\nfocusId: {focusId}\n对象：{label}{selection}', { focusId, label, selection }))
 }
 
 /** 一张图。空的时候只有底色和淡淡的记号，不放文字。 */
@@ -181,6 +183,7 @@ function Stat({ icon, value, unit }) {
 /** 主视觉：渐变底、大标题、数字，右边是视频封面和配图的拼贴。 */
 function HeroTile({ item, live, onView }) {
   const settings = useDesk(s => s.settings)
+  const { pickDirectory } = useWorkbench()
   const production = item.production
   const running = production?.status === 'running'
   const liveTitle = production?.stage === 'brief' && live?.title ? unescapeJson(live.title) : null
@@ -199,8 +202,11 @@ function HeroTile({ item, live, onView }) {
   }
   const save = async () => {
     setSaving(true)
-    await saveProduced(item.id)
-    setSaving(false)
+    try {
+      await saveProducedWithDirectory(item.id, { settings, pickDirectory, saveSettings, saveProduced })
+    } finally {
+      setSaving(false)
+    }
   }
   const again = () => setDesk({
     dialog: {
@@ -291,6 +297,7 @@ function ArticleBody({ production, text, onView, proseClass = 'md-prose' }) {
 }
 
 function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
+  const { askAgent } = useWorkbench()
   const production = item.production
   const running = production?.status === 'running'
   const scroller = React.useRef(null)
@@ -360,7 +367,7 @@ function ArticleTile({ item, live, open, onToggle, onView, tileRef }) {
       )}
       {picked ? (
         <button type="button" className="md-pick" style={{ left: picked.x, top: picked.y }} onMouseDown={e => e.preventDefault()} onClick={() => {
-          askAbout(t('这段'), picked.text)
+          askAbout(askAgent, item.id, t('这段'), picked.text)
           setPicked(null)
           window.getSelection()?.removeAllRanges()
         }}><Icon name="chat" size={12} />{t('让助手改这段')}</button>
@@ -420,6 +427,7 @@ function assetList(production) {
 
 /** 查看大图：左右键切换，可以重画、下载，或者让助手改。 */
 function Viewer({ item, target, onChange, onClose }) {
+  const { askAgent } = useWorkbench()
   const imageReady = useDesk(s => s.settings?.imageReady)
   const list = assetList(item.production).filter(row => row.asset?.src || isBusy(row.asset))
   const index = Math.max(0, list.findIndex(row => row.target === target))
@@ -427,6 +435,7 @@ function Viewer({ item, target, onChange, onClose }) {
   const ref = React.useRef(null)
   React.useEffect(() => {
     const onKey = (event) => {
+      if (event.key === 'Escape' && document.querySelector('.md-root.is-narrow .md-native-dock.is-open')) return
       if (event.key === 'Escape') {
         event.preventDefault()
         onClose()
@@ -453,7 +462,7 @@ function Viewer({ item, target, onChange, onClose }) {
           <div className="md-viewer-text"><b>{current.label}</b>{current.note ? <span>{current.note}</span> : null}</div>
           <IconButton icon="chevL" label={t('上一张')} disabled={!list[index - 1]} onClick={() => list[index - 1] && onChange(list[index - 1].target)} />
           <IconButton icon="chevR" label={t('下一张')} disabled={!list[index + 1]} onClick={() => list[index + 1] && onChange(list[index + 1].target)} />
-          <button type="button" className="md-pill" onClick={() => { askAbout(current.label); onClose() }}><Icon name="chat" size={13} />{t('让助手改')}</button>
+          <button type="button" className="md-pill" onClick={() => { askAbout(askAgent, item.id, current.label); onClose() }}><Icon name="chat" size={13} />{t('让助手改')}</button>
           {imageReady ? <button type="button" className="md-pill" disabled={isBusy(current.asset)} onClick={() => regenAsset(item.id, current.target)}><Icon name="refresh" size={13} />{t('重画')}</button> : null}
           {current.asset.src ? <a className="md-pill" href={current.asset.src} download><Icon name="save" size={13} />{t('下载')}</a> : null}
           <IconButton icon="close" label={t('关闭')} onClick={onClose} />
@@ -507,6 +516,7 @@ function Sheet({ item, live }) {
   React.useEffect(() => {
     if (!open) return undefined
     const onKey = (event) => {
+      if (event.key === 'Escape' && document.querySelector('.md-root.is-narrow .md-native-dock.is-open')) return
       if (event.key === 'Escape' && !viewing) {
         event.preventDefault()
         collapse()
@@ -547,7 +557,7 @@ export function Studio() {
   const origin = useDesk(s => s.sheetOrigin)
   const live = useDesk(s => s.live[s.focusId])
   const settings = useDesk(s => s.settings)
-  const chatOpen = useDesk(s => s.studioDock)
+  const { askAgent } = useWorkbench()
   const ref = React.useRef(null)
   const production = item?.production
   const running = production?.status === 'running'
@@ -576,7 +586,8 @@ export function Studio() {
   React.useEffect(() => {
     if (!id) return undefined
     const onKey = (event) => {
-      // 有格子放大或大图打开时，Esc 只收回它们
+      // 原生对话抽屉优先处理 Esc；有格子放大或大图打开时，Esc 只收回它们
+      if (event.key === 'Escape' && document.querySelector('.md-root.is-narrow .md-native-dock.is-open')) return
       if (event.key === 'Escape' && !event.defaultPrevented && !document.querySelector('.md-tile.is-open,.md-viewer') && !/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) closeItem()
     }
     window.addEventListener('keydown', onKey)
@@ -587,24 +598,24 @@ export function Studio() {
   React.useEffect(() => { if (id && !item) closeItem() }, [id, item])
   if (!item) return null
   return (
-    <div className={`md-studio ${chatOpen ? 'chat-open' : ''}`} ref={ref} role="dialog" aria-label={t('灵感')}>
-      <div className="md-studio-chat">
-        <ChatPanel
-          itemId={item.id}
-          head={(
-            <>
-              <IconButton icon="chevL" label={t('返回灵感')} onClick={closeItem} />
-              <h2>{t('成稿')}</h2>
-            </>
-          )}
-          top={<IdeaCard item={item} live={live} settings={settings} />}
-          suggestions={production?.status === 'done' ? DONE_SUGGESTIONS.map(row => t(row)) : []}
-          placeholder={running ? t('正在成稿，马上就好') : production?.status === 'done' ? t('想怎么改，直接说') : t('补充点想法，或者直接说要什么')}
-          disabled={running}
-          intro={false}
-        />
-      </div>
-      <button type="button" className="md-chat-toggle" aria-label={t('打开对话')} onClick={() => setDesk(s => ({ studioDock: !s.studioDock }))}><Icon name="chat" size={16} /></button>
+    <div className="md-studio" ref={ref} role="dialog" aria-label={t('灵感')}>
+      <aside className="md-studio-control">
+        <header className="md-studio-control-head" data-window-drag="">
+          <IconButton icon="chevL" label={t('返回灵感')} onClick={closeItem} />
+          <h2>{t('成稿')}</h2>
+        </header>
+        <div className="md-studio-control-scroll">
+          <IdeaCard item={item} live={live} settings={settings} />
+          {production?.status === 'done' ? (
+            <div className="md-studio-suggestions">
+              <span>{t('让原生助手改')}</span>
+              {DONE_SUGGESTIONS.map(row => (
+                <button type="button" key={row} onClick={() => askAgent(t('请调整当前成稿，并在修改后同步工作台。\nfocusId: {focusId}\n建议：{suggestion}', { focusId: item.id, suggestion: t(row) }))}>{t(row)}</button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </aside>
       <Sheet key={item.id} item={item} live={live} />
     </div>
   )

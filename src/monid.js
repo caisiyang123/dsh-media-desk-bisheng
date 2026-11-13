@@ -361,7 +361,12 @@ export function createMonidRunner(exec = execFile, locate = createLocator(exec))
     // Windows 的 .cmd shim 不能直接用 execFile 起（spawn EINVAL）：改走 node + CLI 的 JS 入口，参数原样传、不经过 shell
     const file = found.entry ? process.execPath : found.bin
     const argv = found.entry ? [found.entry, ...args] : args
-    const env = { ...process.env, PATH: found.path, NO_COLOR: '1' }
+    // 只给第三方 CLI 必需的环境，避免把宿主里其他服务的密钥一起继承下去。
+    // MONID_* 是该 CLI 自己的配置命名空间；其余变量一律按白名单传递。
+    const allowed = new Set(['HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'USER', 'LOGNAME', 'SHELL', 'COMSPEC', 'SYSTEMROOT', 'SYSTEMDRIVE', 'WINDIR', 'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA', 'TEMP', 'TMP', 'TMPDIR', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'NODE_EXTRA_CA_CERTS'])
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => allowed.has(key.toUpperCase()) || /^MONID_[A-Z0-9_]+$/.test(key)))
+    env.PATH = found.path
+    env.NO_COLOR = '1'
     if (found.entry && process.versions.electron) env.ELECTRON_RUN_AS_NODE = '1'
     return new Promise((resolve, reject) => {
       // 不经过 shell，参数原样传给命令

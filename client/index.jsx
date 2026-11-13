@@ -1,7 +1,6 @@
-// dsh-media-desk 浏览器半片：侧栏入口 + main 全局面板。
+// dsh-media-desk 浏览器半片：customFrame 业务工作台 + 宿主原生 Chat。
 import React from 'react'
 import { HomeView } from './canvas.jsx'
-import { ChatDock } from './chat.jsx'
 import { ContentView } from './content.jsx'
 import { captureFiles, captureUrl, dispatchOps, loadDesk, setDesk, undo, useDesk } from './desk.js'
 import { InsightsView } from './insights.jsx'
@@ -11,10 +10,9 @@ import { ModelButton, ModelPicker } from './modelpick.jsx'
 import { SettingsDialog } from './settings.jsx'
 import { Studio } from './studio.jsx'
 import css from './styles.css'
-import { lang, subscribeLang, t, useLang } from './i18n.js'
+import { lang, t, useLang } from './i18n.js'
 import { Dialog, FormDialog, Icon, IconButton, Toast } from './ui.jsx'
-
-const PANEL_ID = 'media-desk'
+import { DockResizer, NativeChatDock, useWorkbench, WorkbenchProvider } from './workbench.jsx'
 
 // navKey：同一个中文在别处意思不同（单数的“灵感”“风格”），英文导航另查一条
 const NAV = [
@@ -26,6 +24,10 @@ const NAV = [
 ]
 
 const VIEWS = { home: HomeView, content: ContentView, schedule: ScheduleView, insights: InsightsView, style: StyleView }
+const ORIGINAL_AUTHOR = {
+  name: '蜗牛的科技笔记',
+  url: 'https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3',
+}
 
 function CaptureDialog() {
   const capture = useDesk(s => s.capture)
@@ -110,30 +112,16 @@ function SampleBadge() {
   )
 }
 
-function Desk() {
+function DeskContent() {
   // 切换语言时整棵树重新渲染
   useLang()
   const ready = useDesk(s => Boolean(s.state))
   const error = useDesk(s => s.error)
   const view = useDesk(s => s.view)
-  const dockOpen = useDesk(s => s.dockOpen)
   const canUndo = useDesk(s => s.canUndo)
-  const rootRef = React.useRef(null)
-  const [width, setWidth] = React.useState(1600)
-  const narrow = width < 1020
+  const { rootRef, containerWidth, narrow, dockWidth, resizing, dockOpen, setDockOpen } = useWorkbench()
 
   React.useEffect(() => { loadDesk() }, [])
-  // 窗口窄的时候对话栏会盖住内容，默认收起，需要时再打开
-  React.useEffect(() => {
-    if (narrow) setDesk({ dockOpen: false })
-  }, [narrow])
-  React.useEffect(() => {
-    const el = rootRef.current
-    if (!el) return undefined
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
   React.useEffect(() => {
     const onKey = (event) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable
@@ -146,12 +134,13 @@ function Desk() {
     return () => window.removeEventListener('keydown', onKey)
   }, [canUndo])
 
-  // 工作区有自己的对话栏
-  const focused = useDesk(s => Boolean(s.focusId))
-  const showDock = dockOpen && !focused
   const Active = VIEWS[view] ?? HomeView
   return (
-    <div className={`md-root ${narrow ? 'is-narrow' : ''} ${width < 780 ? 'is-compact' : ''} ${showDock ? 'has-dock' : ''}`} ref={rootRef}>
+    <div
+      className={`md-root ${narrow ? 'is-narrow' : ''} ${containerWidth - (dockOpen && !narrow ? dockWidth : 0) < 780 ? 'is-compact' : ''} ${dockOpen ? 'has-dock' : ''} ${resizing ? 'is-resizing' : ''}`}
+      ref={rootRef}
+      style={{ '--dock-w': `${dockWidth}px` }}
+    >
       <style>{css}</style>
       <div className="md-ambient" aria-hidden="true"><i /><i /><i /></div>
       <div className="md-main">
@@ -161,12 +150,22 @@ function Desk() {
               <button type="button" key={entry.id} className={view === entry.id ? 'is-on' : ''} aria-current={view === entry.id ? 'page' : undefined} onClick={() => setDesk({ view: entry.id, focusId: null })}>{entry.navKey && lang() === 'en' ? t(entry.navKey) : t(entry.label)}</button>
             ))}
           </nav>
+          <a
+            className="md-author"
+            href={ORIGINAL_AUTHOR.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t('原作者：{name}。点击查看原作者主页。', { name: ORIGINAL_AUTHOR.name })}
+          >
+            <span>{t('原作者')}</span>
+            <b>{ORIGINAL_AUTHOR.name}</b>
+          </a>
           <span style={{ flex: 1 }} />
           {ready ? <SampleBadge /> : null}
           {canUndo ? <IconButton icon="undo" label={t('撤销上一步')} onClick={undo} /> : null}
           {ready ? <ModelButton /> : null}
           <IconButton icon="gear" label={t('设置')} onClick={() => setDesk({ settingsOpen: true })} />
-          {showDock ? null : <button type="button" className="md-open-dock" onClick={() => setDesk({ dockOpen: true })}><Icon name="chat" size={15} />{t('助手')}</button>}
+          <button type="button" className="md-open-dock" aria-expanded={dockOpen} onClick={() => setDockOpen(value => !value)}><Icon name="chat" size={15} />{t('助手')}</button>
         </header>
         <main className="md-content" key={view}>
           {error ? (
@@ -175,7 +174,8 @@ function Desk() {
         </main>
         {ready ? <Studio /> : null}
       </div>
-      {ready && showDock ? <ChatDock /> : null}
+      {dockOpen && !narrow ? <DockResizer /> : null}
+      <NativeChatDock />
       {ready ? <CaptureDialog /> : null}
       <FormDialog />
       {ready ? <SettingsDialog /> : null}
@@ -185,56 +185,23 @@ function Desk() {
   )
 }
 
-function PanelIcon({ size }) {
-  return <Icon name="scatter" size={size} />
-}
-
-export const inject = ['slots']
+export const inject = ['desktopWorkbenches', 'uiSession', 'uiWorkspace']
 
 export function apply(ctx) {
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: PANEL_ID }, Desk))
-  // 侧栏的名字只在注册时读一次，换语言时重新注册
-  ctx.effect(() => {
-    let release = null
-    const mount = () => {
-      release?.()
-      release = ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-        name: 'sidebar.panellist',
-        id: PANEL_ID,
-        order: 5,
-        label: () => t('自媒体工作台'),
-      }, PanelIcon))
-    }
-    mount()
-    const off = subscribeLang(mount)
-    return () => { off(); release?.() }
-  }, 'dsh-media-desk: sidebar entry')
-  mountBetterSidebar(ctx)
-}
+  function Desk({ service, entry, conversation }) {
+    return (
+      <WorkbenchProvider ctx={ctx} service={service} entry={entry} conversation={conversation}>
+        <DeskContent />
+      </WorkbenchProvider>
+    )
+  }
 
-/**
- * 装了 dsh-better-sidebar 就再挂一个右侧栏的页面（#10）：左侧栏被别的插件整个接管时，
- * 这是唯一还点得到的入口。没装就什么都不做——它是软依赖，不进顶层的 inject。
- */
-function mountBetterSidebar(ctx) {
-  const register = inner => {
-    const sidebar = inner.betterSidebar ?? inner.get?.('betterSidebar')
-    if (typeof sidebar?.registerTab !== 'function') return
-    inner.effect(() => sidebar.registerTab({
-      id: `${PANEL_ID}:workbench`,
-      title: () => t('自媒体工作台'),
-      description: () => t('灵感、内容、排期、复盘、风格'),
-      icon: size => <PanelIcon size={size} />,
-      order: 60,
-      single: true,
-      component: Desk,
-    }), 'dsh-media-desk: better-sidebar tab')
-  }
-  try {
-    // 服务晚于我们就绪、或者中途被卸掉再装回，子作用域都会跟着重来
-    if (typeof ctx.inject === 'function') ctx.inject(['betterSidebar'], register)
-    else register(ctx)
-  } catch (error) {
-    console.warn('[dsh-media-desk] better-sidebar tab skipped:', error)
-  }
+  ctx.effect(() => ctx.desktopWorkbenches.register({
+    title: '自媒体工作台 · BISHENG 版',
+    panelTitle: '灵感与内容创作',
+    repository: 'https://github.com/caisiyang123/dsh-media-desk-bisheng',
+    description: '基于「蜗牛的科技笔记」原作的 BISHENG 适配版：记一句灵感，生成脚本、封面、配图和分镜；原生 Chat 联动管理内容与排期',
+    category: '内容创作',
+    customFrame: true,
+  }, Desk))
 }

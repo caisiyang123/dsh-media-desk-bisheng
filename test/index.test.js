@@ -22,15 +22,17 @@ test('index.json：官方校验器接受，安装地址指向 npm 上的 dsh-med
   const [plugin] = parsed.plugins
   assert.equal(plugin.name, 'dsh-media-desk')
   const [version] = plugin.versions
-  assert.equal(marketInstallTarget(plugin.name, version).spec, 'dsh-media-desk@2.6.2')
+  assert.equal(marketInstallTarget(plugin.name, version).spec, `dsh-media-desk@${version.version}`)
 })
 
-test('index.json：列表里的版本和 engines 与 package.json 一致', () => {
+test('index.json 仅保留上游 npm 发布记录，独立 BISHENG 包不复用该索引', () => {
   const index = JSON.parse(readFileSync(new URL('../index.json', import.meta.url), 'utf8'))
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
-  const plugin = index.plugins.find(entry => entry.name === manifest.name)
-  assert.ok(plugin, 'index.json 里没有当前包名')
-  assert.equal(plugin.versions[0].engines.dsh, manifest.engines.dsh)
+  const plugin = index.plugins.find(entry => entry.name === 'dsh-media-desk')
+  assert.ok(plugin, 'index.json 里没有上游包名')
+  assert.equal(plugin.versions[0].engines.dsh, '>=0.2.1-rc.5 <0.3.0')
+  assert.equal(manifest.name, 'dsh-media-desk-bisheng')
+  assert.equal(manifest.engines.dsh, '>=0.2.1-rc.2 <0.3.0')
 })
 
 test('latestMarketVersion：取最新发布，发布时间转成 Unix 秒，engines 用发布时的声明', () => {

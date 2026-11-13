@@ -5,11 +5,13 @@
   </picture>
 </p>
 
-<h1 align="center">自媒体工作台</h1>
+<h1 align="center">自媒体工作台 · BISHENG 版</h1>
 
-<p align="center"><b>DeepSeek Harness 的一个插件。记一句灵感，一键做出脚本、封面、配图和分镜。</b></p>
+> 本仓库是 <a href="https://github.com/woniuniuniu/dsh-media-desk">woniuniuniu/dsh-media-desk</a> 的 BISHENG 工作台适配版，由 <b>caisiyang123</b> 适配与发布维护。原作者为 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a>，工作台顶部常驻展示原作者署名。使用业务整页、按需原生 Chat、可调分隔条和受会话归属约束的 <code>media_workbench</code> 工具。先阅读 <a href="docs/bisheng-workbench.md">BISHENG 使用与开发说明</a>；下文保留上游功能介绍与截图，安装、原生 Chat 位置和目录说明以 BISHENG 版为准。
 
-<p align="center">由小红书科技博主 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a> 开发，一个每天要发内容的人，给自己做的工作台。</p>
+<p align="center"><b>记一句灵感，一键做出脚本、封面、配图和分镜，并在 BISHENG 原生 Chat 里边聊边改。</b></p>
+
+<p align="center">原作出自小红书科技博主 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a>；BISHENG 工作台适配由 <a href="https://github.com/caisiyang123"><b>caisiyang123</b></a> 维护。</p>
 
 <p align="center">
   <a href="#三步上手">安装</a> ·
@@ -147,41 +149,23 @@
 
 <br>
 
-## 三步上手
+## 三步上手（BISHENG 版）
 
-要求 DeepSeek Harness `0.2.1-rc.5` 及以上的 `0.2.x`，已在 `0.2.2-rc.1` 的桌面版和网页版上测过。
-
-**1. 安装。** 打开 DeepSeek Harness 侧栏的「插件」，先打开实验性的索引功能：DSH `0.2.2` 及以上在「实验性插件」下启用「自定义插件索引」；`0.2.1` 系列里它叫「自定义插件市场」，在「实验性插件」旁的「更多」里。打开后页面会多出「已安装」和「发现」两个标签。
-
-切到「发现」，添加这条索引地址（加一次就够）：
-
-```
-https://raw.githubusercontent.com/woniuniuniu/dsh-media-desk/main/index.json
-```
-
-GitHub 直连不通时，换成这个 CDN 镜像，代价是它最多可能比最新发布晚 12 小时：
-
-```
-https://cdn.jsdelivr.net/gh/woniuniuniu/dsh-media-desk@main/index.json
-```
-
-列表里会出现「自媒体工作台」，点安装即可。它装的就是同一个 npm 包 `dsh-media-desk`，索引只是省掉手输包名这一步。
-
-不想加索引，也可以在「插件」→「添加插件」里输入包名 `dsh-media-desk` 点安装，或者用命令行。桌面版要先完全退出（⌘Q）再装，装好重新打开；网页版装好后重启 `dsh web`。终端里没有 `dsh` 的话，先在桌面版菜单里选「管理 dsh 命令」。
+**1. 构建并安装本地包。** 本适配版的包名为 `dsh-media-desk-bisheng`，版本为 `1.0.0`。先用 pnpm 完成测试、构建和打包，再从生成的 `.tgz` 安装；不要直接把上游 npm 发布包 `dsh-media-desk` 当成本适配版。
 
 ```bash
-dsh plugin --profile desktop add dsh-media-desk
+pnpm install
+pnpm test
+pnpm build
+pnpm check
+pnpm pack
 ```
 
-```bash
-dsh plugin --profile web add dsh-media-desk
-```
+**2. 重启 Harness。** Host 服务、Agent 工具和会话归属在启动时加载。安装后按 BISHENG 顶部提示点击「立即重启」，或使用菜单「Harness → 重启 Harness」。通常不需要完整退出 BISHENG Desktop。
 
-**2. 更新。** 有新版本时，插件页会显示可更新，点一下就行；用命令行装的重跑一次上面的命令。想离线安装的话，也可以到 [Releases](https://github.com/woniuniuniu/dsh-media-desk/releases/latest) 下载 `dsh-media-desk-*.tgz`，把包名换成 `"file:$PWD/dsh-media-desk-版本号.tgz"`。
+**3. 打开工作台。** 展开左侧栏，在左上角「工作台」右侧的当前名称／切换区域选择「自媒体工作台 · BISHENG 版」。如果没有看到，进入「工作台市场 → 已安装」检查本地条目和运行状态。
 
-**3. 打开。** 侧栏会出现「自媒体工作台」。第一次看到的都是示例数据，方便你先看看每个页面长什么样；点右上角「示例数据 · 清空」，换成自己的。
-
-卸载时把 `add` 换成 `remove dsh-media-desk`。你的内容一直在 `~/.dsh/media-desk/`，不会跟着删。
+第一次看到的都是示例数据，点右上角「示例数据 · 清空」换成自己的。业务页面无需先建会话；点击「助手」或「让助手改」时，再按提示选择资料位置并创建工作台会话。卸载不会删除 `$DSH_HOME/media-desk/` 中的内容。
 
 <br>
 
@@ -221,7 +205,7 @@ dsh plugin --profile web add dsh-media-desk
 2. 到 [app.monid.ai](https://app.monid.ai/access/api-keys) 注册，创建密钥。
 3. 在终端执行 `monid keys add -k 你的密钥 -l main`。密钥别发在聊天里。
 
-插件只调用本机的 `monid` 命令，不碰密钥。
+插件只通过参数数组调用本机的 `monid` 命令，不读取或回显 Monid Key，也不经过 Shell。Monid 自己的账号和密钥仍由其本地配置管理。
 
 <br>
 
@@ -239,7 +223,7 @@ dsh plugin --profile web add dsh-media-desk
 <summary><b>能直接发布吗？</b></summary>
 <br>
 
-不能。各平台没有统一接口，复制脚本或保存文件夹后自己发。保存的文件夹默认在 `~/Documents/自媒体工作台/`，里面有脚本、分镜脚本、视频封面、配图和分镜图。
+不能。各平台没有统一接口，复制脚本或保存文件夹后自己发。BISHENG 版首次保存时会通过宿主目录选择器让你明确选择文件夹，取消则不保存；里面有脚本、分镜脚本、视频封面、配图和分镜图。
 
 </details>
 
@@ -247,7 +231,7 @@ dsh plugin --profile web add dsh-media-desk
 <summary><b>我的东西存在哪？</b></summary>
 <br>
 
-全在本机 `~/.dsh/media-desk/`，桌面版和网页版共用。没有云端，没有账号系统。
+全在宿主 `dshHomePath('media-desk')` 指向的本机目录（上游默认为 `~/.dsh/media-desk/`，BISHENG 使用自己的 DSH_HOME）。没有云端，没有账号系统。
 
 </details>
 
@@ -277,9 +261,15 @@ dsh plugin --profile web add dsh-media-desk
 
 <br>
 
-## 作者
+## 作者与维护
 
-我是 [蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3)，在小红书做科技内容，小红书号 `1097519508`。这个工作台是我自己每天用的：灵感记不住、成稿太慢、发完不知道效果，这三件事我都踩过，所以做成了这样。用得顺手或者不顺手，欢迎提 [Issue](https://github.com/woniuniuniu/dsh-media-desk/issues)，也欢迎来小红书找我聊。
+### 原作者
+
+[蜗牛的科技笔记](https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3)，小红书科技博主，小红书号 `1097519508`。原作是他给自己每天做内容而开发的工作台，上游仓库为 [woniuniuniu/dsh-media-desk](https://github.com/woniuniuniu/dsh-media-desk)。
+
+### BISHENG 适配维护
+
+[caisiyang123](https://github.com/caisiyang123)。本仓库只负责 BISHENG 原生工作台入口、原生 Chat、会话归属、布局、安全边界和发布包装；创作业务能力来自上游实现。适配问题请提 [Issue](https://github.com/caisiyang123/dsh-media-desk-bisheng/issues)，原项目通用问题仍可提交到上游仓库。
 
 ## 致谢
 
@@ -302,7 +292,7 @@ dsh plugin --profile web add dsh-media-desk
 - [TerryWang9112（Terry）](https://github.com/TerryWang9112)：接入阿里云百炼和万相生图，并让每次成稿可以选择只出文字、不画图（[#12](https://github.com/woniuniuniu/dsh-media-desk/pull/12)）
 - [ytzhangFTD（小虾米）](https://github.com/ytzhangFTD)：发现灵感的正文进了成稿工作区就看不到，并定位到是哪一处没有渲染（[#13](https://github.com/woniuniuniu/dsh-media-desk/issues/13)）
 
-欢迎大家继续[提 issue](https://github.com/woniuniuniu/dsh-media-desk/issues)，每一条都会认真看。
+感谢原作者和所有上游贡献者。BISHENG 适配问题请提交到[本仓库 Issues](https://github.com/caisiyang123/dsh-media-desk-bisheng/issues)；与上游实现通用的问题也可继续提交到[上游仓库](https://github.com/woniuniuniu/dsh-media-desk/issues)。
 
 ### 贡献者
 
@@ -313,15 +303,15 @@ dsh plugin --profile web add dsh-media-desk
 ## 开发
 
 ```bash
-npm install && npm test        # Host 逻辑测试
-npm run watch                  # 监听 client/ 并重新打包
-npm run index                  # 发布后更新 index.json 的版本和发布时间
-scripts/dev-sandbox.sh         # 在隔离的 DSH_HOME 里跑网页版，不碰 ~/.dsh
+pnpm install && pnpm test      # Host、工具与客户端契约测试
+pnpm watch                     # 监听 client/ 并重新打包
+pnpm check                     # BISHENG 工作台包静态检查
+scripts/dev-sandbox.sh         # 在隔离的 DSH_HOME 里跑网页版，不碰正式数据
 node scripts/mock-llm.mjs      # 模拟文字和生图模型，不花额度
-npm pack                       # 打出可安装的 tgz
+pnpm pack                      # 先构建，再打出可安装的 tgz
 ```
 
-`index.json` 是插件市场索引，`npm run index` 会按 npm 上的最新发布刷新里面的版本号和发布时间，所以每次发版后跑一次，索引里才是新版本。
+`index.json` 是上游插件市场索引，`pnpm index` 会按 npm 上的最新发布刷新里面的版本号和发布时间；本地 BISHENG 适配版不通过该索引发布。
 
 `scripts/mock-monid.mjs` 是假的 `monid` 命令，内容全是编的，用来不花钱测导入流程：包成名为 `monid` 的可执行文件放到 `PATH` 最前面。
 

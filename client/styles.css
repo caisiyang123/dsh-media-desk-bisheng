@@ -24,7 +24,7 @@
   --r-lg: var(--dsw-radius-lg, 16px);
   --r-xl: var(--dsw-radius-xl, 20px);
   --r-panel: var(--dsw-radius-panel, 28px);
-  --dock-w: 336px;
+  --dock-w: 380px;
   position: relative;
   display: flex;
   width: 100%;
@@ -74,8 +74,42 @@ body[data-ds-dark-theme] .md-root { color-scheme: dark; }
 .md-nav button.is-on { background: var(--primary); color: var(--on-primary); }
 .md-sample { height: 28px; padding: 0 11px; border-radius: var(--r-sm); color: var(--ink3); font-size: 12px; line-height: 28px; background: var(--glass); backdrop-filter: blur(24px); box-shadow: var(--dsw-elevation-soft); white-space: nowrap; }
 .md-sample:hover { color: var(--ink); }
+/* 原作者署名：工作台顶部常驻，链接到原作者公开主页。 */
+.md-author {
+  display: inline-flex; align-items: center; flex: none; min-width: 0; max-width: 175px;
+  height: 28px; padding: 0 10px; border-radius: var(--r-sm); white-space: nowrap;
+  color: var(--ink3); font-size: 11.5px; line-height: 28px;
+  background: var(--glass); box-shadow: var(--dsw-elevation-soft);
+  backdrop-filter: blur(24px); overflow: hidden;
+  transition: color .15s, background .15s;
+}
+.md-author:hover { color: var(--ink); background: var(--card); }
+.md-author span { flex: none; }
+.md-author b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .md-open-dock { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: var(--r-md); background: var(--glass); backdrop-filter: blur(24px); box-shadow: var(--dsw-elevation-soft); white-space: nowrap; font-size: 13px; }
 .md-open-dock:hover { background: var(--card); }
+
+/* 宿主原生对话：节点常驻，关闭仅用 display/inert 隔离交互，不卸载输入树。 */
+.md-root.is-resizing { user-select: none; }
+.md-native-dock { position: relative; z-index: 40; display: none; flex: none; width: var(--dock-w); height: 100%; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; border-left: .5px solid var(--line); background: var(--bg); }
+.md-native-dock.is-open { display: flex; }
+.md-native-head { flex: none; display: flex; align-items: center; gap: 8px; height: 48px; padding: 8px 8px 8px 16px; border-bottom: .5px solid var(--line); background: var(--card); }
+.md-native-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+.md-native-note { color: var(--ink3); font-size: 11px; white-space: nowrap; }
+.md-native-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px 16px; color: var(--ink2); font-size: 13px; }
+.md-native-empty small { color: var(--ink3); font-size: 12px; line-height: 18px; }
+.md-native-quick { flex: none; display: flex; flex-direction: column; gap: 4px; max-height: 144px; overflow-y: auto; padding: 8px; border-bottom: .5px solid var(--line); background: var(--card); }
+.md-native-quick button { height: 32px; padding: 0 8px; border-radius: var(--r-sm); color: var(--ink2); font-size: 12px; line-height: 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-native-quick button:hover { background: var(--hover); color: var(--ink); }
+.md-native-conversation { flex: 1; min-width: 0; min-height: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+.md-native-conversation[hidden] { display: none; }
+.md-native-conversation > * { flex: 1; min-width: 0; min-height: 0; }
+.md-native-scrim { position: absolute; inset: 0; z-index: 39; background: color-mix(in srgb, var(--ink) 18%, transparent); backdrop-filter: blur(4px); }
+.md-resizer { position: absolute; z-index: 45; top: 0; bottom: 0; right: var(--dock-w); width: 12px; transform: translateX(50%); display: flex; align-items: center; justify-content: center; cursor: col-resize; touch-action: none; }
+.md-resizer-grip { width: 4px; height: 48px; border-radius: 999px; background: var(--line-strong); box-shadow: 0 0 0 1px color-mix(in srgb, var(--card) 64%, transparent); transition: height .15s, background .15s; }
+.md-resizer:hover .md-resizer-grip, .md-resizer:focus-visible .md-resizer-grip, .md-root.is-resizing .md-resizer-grip { height: 64px; background: var(--accent); }
+.md-root.is-narrow .md-native-dock { position: absolute; right: 0; top: 0; bottom: 0; z-index: 40; width: min(var(--dock-w), calc(100% - 16px)); height: auto; border-left: .5px solid var(--line-strong); box-shadow: var(--dsw-elevation-prominent); }
+.md-root.is-narrow .md-resizer { display: none; }
 
 .md-content { flex: 1; min-height: 0; position: relative; animation: md-rise .45s var(--ease) both; }
 @keyframes md-rise { from { opacity: 0; transform: translateY(8px); } }
@@ -289,14 +323,16 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 
 .md-feed-hero { max-width: 560px; margin: 8px auto 34px; }
 
-/* 灵感工作区：左边对话，右边稿面 */
-.md-studio { --canvas: color-mix(in srgb, var(--ink) 3.5%, var(--bg)); --chat-w: 320px; position: absolute; inset: 0; z-index: 31; display: flex; background: var(--canvas); will-change: clip-path; }
-.md-studio-chat { flex: none; width: var(--chat-w); min-height: 0; display: flex; animation: md-rise .5s var(--ease) both; }
-.md-chat { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.md-studio .md-dock-head { min-height: 52px; padding: 10px 12px 4px max(10px, var(--dsh-frame-leading-clearance, 0px)); gap: 2px; }
-.md-studio .md-dock-scroll { padding: 6px 14px 12px; }
-.md-studio .md-composer { background: var(--card); }
-.md-chat-toggle { display: none; }
+/* 灵感工作区：窄控制栏 + 稿面；修改建议进入宿主原生 Chat。 */
+.md-studio { --canvas: color-mix(in srgb, var(--ink) 3.5%, var(--bg)); --control-w: 320px; position: absolute; inset: 0; z-index: 31; display: flex; background: var(--canvas); will-change: clip-path; }
+.md-studio-control { flex: none; width: var(--control-w); min-height: 0; display: flex; flex-direction: column; border-right: .5px solid var(--line); animation: md-rise .5s var(--ease) both; }
+.md-studio-control-head { flex: none; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 8px 8px max(8px, var(--dsh-frame-leading-clearance, 0px)); }
+.md-root .md-studio-control-head h2 { font-size: 15px; line-height: 24px; font-weight: 600; }
+.md-studio-control-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 8px; }
+.md-studio-suggestions { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: var(--r-lg); background: var(--card); }
+.md-studio-suggestions > span { padding: 0 8px 4px; color: var(--ink3); font-size: 12px; }
+.md-studio-suggestions button { min-height: 32px; padding: 4px 8px; border-radius: var(--r-sm); color: var(--ink2); font-size: 12px; text-align: left; }
+.md-studio-suggestions button:hover { background: var(--hover); color: var(--ink); }
 
 /* 灵感卡 */
 .md-idea-card { flex: none; padding: 14px; border-radius: var(--r-xl); background: var(--card); box-shadow: var(--dsw-elevation-soft); }
@@ -448,13 +484,12 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
   .md-shot .md-plate { flex: none; height: auto; aspect-ratio: 3 / 2; }
 }
 
-/* 窗口太窄时，对话栏改成抽屉 */
-.md-root.is-narrow .md-studio { --chat-w: 300px; }
-.md-root.is-compact .md-studio-chat { position: absolute; left: 0; top: 0; bottom: 0; z-index: 12; background: var(--canvas); box-shadow: var(--dsw-elevation-prominent); transform: translateX(-104%); transition: transform .45s cubic-bezier(.2, 1, .3, 1); animation: none; }
-.md-root.is-compact .md-studio.chat-open .md-studio-chat { transform: none; }
-.md-root.is-compact .md-chat-toggle { position: absolute; left: 14px; bottom: 14px; z-index: 13; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; corner-shape: round; background: var(--primary); color: var(--on-primary); box-shadow: var(--dsw-elevation-prominent); }
-.md-root.is-compact .md-studio.chat-open .md-chat-toggle { left: calc(var(--chat-w) + 14px); }
-.md-root.is-compact .md-sheet { padding-left: 10px; }
+/* 业务区太窄时，Studio 控制栏改为顶部紧凑区，稿面保留完整宽度。 */
+.md-root.is-narrow .md-studio { --control-w: 288px; }
+.md-root.is-compact .md-studio { flex-direction: column; }
+.md-root.is-compact .md-studio-control { width: 100%; max-height: 280px; border-right: 0; border-bottom: .5px solid var(--line); }
+.md-root.is-compact .md-studio-control-scroll { padding: 8px; }
+.md-root.is-compact .md-sheet { padding: 8px; }
 
 /* 查看大图 */
 .md-viewer { position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; padding: 18px; background: color-mix(in srgb, var(--bg) 62%, transparent); backdrop-filter: blur(18px) saturate(140%); animation: md-fade .25s both; }
@@ -469,6 +504,9 @@ button.md-stamp:not(:disabled):hover { transform: scale(1.08) rotate(-2deg); }
 .md-viewer-text span { display: block; color: var(--ink3); font-size: 12px; line-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* 设置 */
+.md-export-dir { display: flex; align-items: center; gap: 8px; }
+.md-export-dir input { flex: 1; min-width: 0; }
+.md-export-dir .md-btn { flex: none; }
 .md-presets { display: flex; flex-wrap: wrap; gap: 4px; }
 .md-presets button { height: 30px; padding: 0 11px; border-radius: var(--r-md); box-shadow: inset 0 0 0 .5px var(--line-strong); font-size: 12.5px; color: var(--ink2); }
 .md-presets button.is-on { background: var(--primary); color: var(--on-primary); box-shadow: none; }
@@ -821,6 +859,8 @@ button.md-receipt:hover { transform: translateX(2px); }
   .md-nav::-webkit-scrollbar { display: none; }
   .md-nav button { padding: 0 10px; }
   .md-sample { display: none; }
+  .md-author { max-width: 104px; padding: 0 8px; }
+  .md-author span { display: none; }
   .md-open-dock { width: 36px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
   .md-open-dock svg { flex: none; }
   .md-hero-anchor { width: min(520px, calc(100cqw - 40px)); }

@@ -1,4 +1,6 @@
-# dsh-media-desk bundle patch：同一个包提供 host 半片与浏览器半片
+# BISHENG 工作台：宿主服务、原生客户端与会话归属共用同一包。
 - insert:
-    - id: media-desk
-      name: 'dsh-media-desk'
+    - id: media-desk-bisheng
+      name: 'dsh-media-desk-bisheng'
+      config:
+        root: !!js dshHomePath('media-desk')

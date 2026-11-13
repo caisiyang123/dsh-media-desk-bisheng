@@ -7,8 +7,8 @@ const BASE = 'media-desk/'
 
 let snapshot = {
   state: null, model: null, modelOk: null, modelError: null, canUndo: false, error: null,
-  view: 'home', mode: 'scatter', focusId: null, sheetOrigin: null, dockOpen: true, studioDock: false, chatQuote: null, query: '', kindFilter: 'all', related: null,
-  live: {}, settings: null, settingsOpen: false, modelPickOpen: false, thinking: false, toast: null, capture: null, dialog: null,
+  view: 'home', mode: 'scatter', focusId: null, sheetOrigin: null, dockOpen: false, query: '', kindFilter: 'all', related: null,
+  live: {}, settings: null, settingsOpen: false, modelPickOpen: false, toast: null, capture: null, dialog: null,
 }
 const listeners = new Set()
 
@@ -90,7 +90,7 @@ export function openItem(id, origin = null) {
 }
 
 export function closeItem() {
-  setDesk({ focusId: null, sheetOrigin: null, studioDock: false, chatQuote: null })
+  setDesk({ focusId: null, sheetOrigin: null })
 }
 
 /** 一键成稿。任务在 Host 里跑，这里只负责启动和看进度。 */
@@ -144,6 +144,95 @@ export function watchProduction(id) {
   return () => { stopped = true }
 }
 
+/** 把当前业务视图写入已归属的工作台会话。匿名使用时不调用此接口。 */
+export async function syncWorkbench(sessionId, view = snapshot.view, focusId = snapshot.focusId) {
+  return request('workbench', { session_id: sessionId, view, focusId })
+}
+
+/**
+ * 原生 Agent 修改视图后随 revision 回同步；本地操作经 debounce 写入。
+ * dirty / 请求签名双重守卫避免 GET 旧响应覆盖轮询期间的用户最新点击，远程 setDesk 不再触发 POST。
+ */
+export function watchWorkbench(sessionId) {
+  let stopped = false
+  let applyingRemote = false
+  // 首轮先读远端，避免打开已有会话时用本地默认首页覆盖已保存视图。
+  let dirty = false
+  let postInFlight = false
+  let postTimer = null
+  let pollTimer = null
+  let lastRemoteRevision = null
+  const signature = () => JSON.stringify({ view: snapshot.view, focusId: snapshot.focusId })
+  let lastLocalSignature = signature()
+
+  const schedulePost = (delay = 250) => {
+    if (stopped) return
+    clearTimeout(postTimer)
+    postTimer = setTimeout(post, delay)
+  }
+
+  const post = async () => {
+    postTimer = null
+    if (stopped || !dirty || postInFlight) return
+    const postedSignature = signature()
+    const view = snapshot.view
+    const focusId = snapshot.focusId
+    postInFlight = true
+    try {
+      const data = await syncWorkbench(sessionId, view, focusId)
+      if (data.revision !== undefined) lastRemoteRevision = data.revision
+      if (postedSignature === signature()) dirty = false
+    } catch {
+      // 网络抖动时保留 dirty，下一轮慢速重试，不阻断匿名业务操作。
+    } finally {
+      postInFlight = false
+      if (dirty && !stopped) schedulePost(1500)
+    }
+  }
+
+  const off = subscribe(() => {
+    const nextSignature = signature()
+    if (nextSignature === lastLocalSignature) return
+    lastLocalSignature = nextSignature
+    if (applyingRemote) return
+    dirty = true
+    schedulePost()
+  })
+
+  const poll = async () => {
+    if (stopped) return
+    const requestedSignature = signature()
+    const dirtyAtRequest = dirty
+    const postAtRequest = postInFlight
+    try {
+      const data = await request(`workbench?session_id=${encodeURIComponent(sessionId)}`)
+      if (stopped || data.revision === undefined || data.revision === lastRemoteRevision) return
+      lastRemoteRevision = data.revision
+      const changedWhileFetching = requestedSignature !== signature()
+      if (changedWhileFetching || dirty || dirtyAtRequest || postInFlight || postAtRequest) return
+      if (!['home', 'content', 'schedule', 'insights', 'style'].includes(data.view)) return
+      if (data.focusId != null && typeof data.focusId !== 'string') return
+      applyingRemote = true
+      lastLocalSignature = JSON.stringify({ view: data.view, focusId: data.focusId })
+      setDesk({ view: data.view, focusId: data.focusId })
+      dirty = false
+    } catch {
+      // 下一轮再读；同步失败不影响五页业务。
+    } finally {
+      applyingRemote = false
+      if (!stopped) pollTimer = setTimeout(poll, 1500)
+    }
+  }
+
+  poll()
+  return () => {
+    stopped = true
+    off()
+    clearTimeout(postTimer)
+    clearTimeout(pollTimer)
+  }
+}
+
 export async function saveSettings(payload) {
   try {
     const settings = await request('settings', payload)
@@ -161,12 +250,12 @@ export async function fetchModels() {
   return request('models')
 }
 
-/** 切换助手模型；两个字段都空表示跟随默认。 */
+/** 切换成稿模型；两个字段都空表示跟随默认。不影响宿主原生 Chat 的模型。 */
 export async function saveAssistant(assistant) {
   try {
     const settings = await request('settings', { assistant })
     setDesk({ settings, model: settings.assistantEffective ?? snapshot.model })
-    toast(t('助手模型已切换'))
+    toast(t('成稿模型已切换'))
     return true
   } catch (err) {
     report(err)
@@ -187,38 +276,6 @@ export async function testImage(payload) {
   }
 }
 
-function runActions(actions) {
-  for (const action of actions) {
-    if (action.type === 'produce' && action.id) {
-      openItem(action.id)
-      runProduce(action.id)
-    }
-    if (action.type === 'open' && action.id) openItem(action.id)
-    if (action.type === 'nav' && action.view) setDesk({ view: action.view })
-  }
-}
-
-export async function sendChat(text) {
-  const { chatQuote: quote, focusId } = snapshot
-  // 选中的段落或某一镜，随消息一起交给模型
-  const message = quote ? (quote.text ? t('关于{label}「{quote}」：{text}', { label: quote.label, quote: quote.text, text }) : t('关于{label}：{text}', { label: quote.label, text })) : text
-  setDesk(s => ({
-    thinking: true,
-    chatQuote: null,
-    state: { ...s.state, chat: [...s.state.chat, { id: `tmp_${Date.now()}`, role: 'user', text: message, itemId: focusId ?? undefined }] },
-  }))
-  try {
-    const data = await request('chat', { message, focusId: focusId ?? undefined })
-    setDesk({ state: data.state, canUndo: true, modelOk: data.modelOk, modelError: data.modelError })
-    runActions(data.actions || [])
-  } catch (err) {
-    report(err)
-    await loadDesk()
-  } finally {
-    setDesk({ thinking: false })
-  }
-}
-
 export async function saveProduced(id) {
   try {
     const production = snapshot.state.items.find(row => row.id === id)?.production
@@ -235,15 +292,6 @@ export async function saveProduced(id) {
 export async function revealSaved(id) {
   try {
     await request('produce/reveal', { id })
-  } catch (err) {
-    report(err)
-  }
-}
-
-export async function clearChat() {
-  try {
-    const data = await request('chat/clear', {})
-    setDesk({ state: data.state })
   } catch (err) {
     report(err)
   }

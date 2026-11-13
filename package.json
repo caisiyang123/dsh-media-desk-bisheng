@@ -1,7 +1,7 @@
 {
-  "name": "dsh-media-desk",
-  "version": "2.7.0",
-  "description": "DeepSeek Harness 插件。一句话记灵感，一键成稿：口播脚本、标题、视频封面、配图和黑白线稿分镜。",
+  "name": "dsh-media-desk-bisheng",
+  "version": "1.0.0",
+  "description": "BISHENG 自媒体工作台：基于「蜗牛的科技笔记」原作适配，一句话记灵感，一键成稿，并通过原生 Chat 管理脚本、封面、配图、分镜、排期与复盘。",
   "type": "module",
   "main": "src/host.js",
   "exports": {
@@ -17,36 +17,55 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-runtime"
-      ]
+        "dsh-desktop-workbenches",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-workspace"
+      ],
+      "external": []
     }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.4 <5",
+    "@deepseek-ai/schemastery": ">=3.18.4 <4",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-client-connection": ">=0.2.0-rc.2 <0.3.0-0"
   },
   "engines": {
     "node": ">=20",
-    "dsh": ">=0.2.1-rc.5 <0.3.0"
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
   },
   "keywords": [
     "dsh",
+    "bisheng",
+    "dsh-workbench",
+    "content-creation",
     "deepseek-harness",
     "dsh-plugin"
+  ],
+  "author": "caisiyang123",
+  "contributors": [
+    "蜗牛的科技笔记（上游原作者）"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/woniuniuniu/dsh-media-desk.git"
+    "url": "git+https://github.com/caisiyang123/dsh-media-desk-bisheng.git"
   },
-  "homepage": "https://github.com/woniuniuniu/dsh-media-desk#readme",
-  "bugs": "https://github.com/woniuniuniu/dsh-media-desk/issues",
+  "homepage": "https://github.com/caisiyang123/dsh-media-desk-bisheng#readme",
+  "bugs": "https://github.com/caisiyang123/dsh-media-desk-bisheng/issues",
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "test": "node --test test/*.test.js",
+    "test": "node scripts/build.mjs && node --test test/*.test.js",
+    "check": "node scripts/check-workbench-package.mjs",
     "assets": "python3 scripts/gen-assets.py",
     "index": "node scripts/build-index.mjs",
-    "prepack": "npm run build"
+    "prepack": "node scripts/build.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-plugin-market-index": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.4",
     "esbuild": "^0.25.10"
   },
   "files": [
@@ -54,7 +73,10 @@
     "dist",
     "assets",
     "cordis.patch.yml",
+    "docs/bisheng-workbench.md",
+    "docs/images",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ]
 }

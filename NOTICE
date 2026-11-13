@@ -1,0 +1,12 @@
+# 来源与署名
+
+本项目是「自媒体工作台」的 BISHENG 工作台适配版。
+
+- 原作：woniuniuniu（蜗牛的科技笔记）
+- 上游项目：https://github.com/woniuniuniu/dsh-media-desk
+- 上游基线：main@b72f964e995dad2f7886994accf7bc49edd160cd
+- BISHENG 工作台适配与发布维护：caisiyang123
+
+上游项目以 MIT License 发布，原始版权声明保留在 LICENSE 中。本仓库对插件入口、原生 Chat、会话归属、布局与发布包装进行了修改；剧本、图片生成、风格卡等创作能力来自上游实现。
+
+工作台界面顶部常驻展示「原作者：蜗牛的科技笔记」，并链接到原作者公开主页。

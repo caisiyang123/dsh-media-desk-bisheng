@@ -5,11 +5,13 @@
   </picture>
 </p>
 
-<h1 align="center">Media Desk</h1>
+<h1 align="center">Media Desk · BISHENG Edition</h1>
 
-<p align="center"><b>A DeepSeek Harness plugin. Capture an idea, and one click drafts the script, cover, images and storyboard.</b></p>
+<p align="center"><b>A BISHENG/DSH workbench. Capture an idea, and one click drafts the script, cover, images and storyboard.</b></p>
 
-<p align="center">Built by <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a> (Snail's Tech Notes), a tech creator on RedNote, as the desk behind their own daily posts.</p>
+<p align="center">Original work by <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a> (Snail's Tech Notes). BISHENG workbench adaptation and publishing maintained by <a href="https://github.com/caisiyang123"><b>caisiyang123</b></a>.</p>
+
+> Adaptation repository: <a href="https://github.com/caisiyang123/dsh-media-desk-bisheng">caisiyang123/dsh-media-desk-bisheng</a>. The workbench header always credits the original author with a link to their public profile. The upstream project is MIT licensed; its copyright notice is preserved in LICENSE.
 
 <p align="center">
   <a href="#get-started">Install</a> ·

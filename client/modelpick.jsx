@@ -1,4 +1,4 @@
-// 助手模型选择：顶栏按钮 + 弹窗。不指定时跟随 DeepSeek Harness 默认模型。
+// 成稿模型选择：顶栏按钮 + 弹窗。不指定时跟随 DeepSeek Harness 默认模型。
 import React from 'react'
 import { fetchModels, saveAssistant, setDesk, useDesk } from './desk.js'
 import { t } from './i18n.js'
@@ -8,8 +8,8 @@ export function ModelButton() {
   const model = useDesk(s => s.model)
   const override = useDesk(s => s.settings?.assistant?.model)
   return (
-    <button type="button" className="md-open-dock" title={t('助手模型')} onClick={() => setDesk({ modelPickOpen: true })}>
-      <Icon name="spark" size={13} />{override || model || t('助手模型')}
+    <button type="button" className="md-open-dock" title={t('成稿模型')} onClick={() => setDesk({ modelPickOpen: true })}>
+      <Icon name="spark" size={13} />{override || model || t('成稿模型')}
     </button>
   )
 }
@@ -33,7 +33,7 @@ export function ModelPicker() {
   }
   const isCurrent = (provider, model) => override?.provider === provider && override?.model === model
   return (
-    <Dialog title={t('助手模型')} onClose={close} width={480}>
+    <Dialog title={t('成稿模型')} onClose={close} width={480}>
       <div className="md-form">
         <div className="md-field">
           <div className="md-presets">
@@ -41,7 +41,7 @@ export function ModelPicker() {
               {t('跟随默认')}{data?.default?.model ? `（${data.default.model}）` : ''}
             </button>
           </div>
-          <small>{t('不指定时，助手跟随 DeepSeek Harness 的默认模型。')}</small>
+          <small>{t('只用于一键成稿与内容规划；不指定时跟随 DeepSeek Harness 默认模型。右侧原生 Chat 的模型仍由宿主会话决定。')}</small>
         </div>
         {!data ? <p className="md-muted"><span className="md-shimmer">{t('正在读取可用模型…')}</span></p> : null}
         {(data?.providers ?? []).map(p => (
