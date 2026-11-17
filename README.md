@@ -11,6 +11,12 @@
 
 <p align="center"><b>记一句灵感，一键做出脚本、封面、配图和分镜，并在 BISHENG 原生 Chat 里边聊边改。</b></p>
 
+## BISHENG 版界面
+
+![自媒体工作台 · BISHENG 版：顶部原作者署名、五个业务页面与示例数据](docs/images/bisheng-overview.jpg)
+
+界面顶部常驻「原作者 蜗牛的科技笔记」，点击可打开原作者公开主页。
+
 <p align="center">原作出自小红书科技博主 <a href="https://www.xiaohongshu.com/user/profile/5faedce8000000000101c8a3"><b>蜗牛的科技笔记</b></a>；BISHENG 工作台适配由 <a href="https://github.com/caisiyang123"><b>caisiyang123</b></a> 维护。</p>
 
 <p align="center">
@@ -151,7 +157,13 @@
 
 ## 三步上手（BISHENG 版）
 
-**1. 构建并安装本地包。** 本适配版的包名为 `dsh-media-desk-bisheng`，版本为 `1.0.0`。先用 pnpm 完成测试、构建和打包，再从生成的 `.tgz` 安装；不要直接把上游 npm 发布包 `dsh-media-desk` 当成本适配版。
+**1. 安装。** 本适配版的包名为 `dsh-media-desk-bisheng`，版本为 `1.0.0`。工作台市场审核通过后可直接在市场安装；当前也可从 GitHub Release 安装：
+
+```bash
+dsh plugin --profile web add https://github.com/caisiyang123/dsh-media-desk-bisheng/releases/latest/download/dsh-media-desk-bisheng.tgz
+```
+
+开发者从源码构建时使用：
 
 ```bash
 pnpm install
@@ -160,6 +172,8 @@ pnpm build
 pnpm check
 pnpm pack
 ```
+
+不要直接把上游 npm 发布包 `dsh-media-desk` 当成本适配版。
 
 **2. 重启 Harness。** Host 服务、Agent 工具和会话归属在启动时加载。安装后按 BISHENG 顶部提示点击「立即重启」，或使用菜单「Harness → 重启 Harness」。通常不需要完整退出 BISHENG Desktop。
 
