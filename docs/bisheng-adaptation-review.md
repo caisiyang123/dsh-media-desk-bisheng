@@ -68,3 +68,17 @@
 - 未调用：真实文字模型、真实生图、真实 Monid、真实发布平台；未读取或输出真实 API Key。
 - 临时材料：目标窗口截图、OCR 文本、辅助鼠标/键盘脚本在验收结束后清理，不纳入交付包。
 - 重载条件：代码 Host 与工具已在用户手动重启后加载；若后续再改 `src/`，仍需再次重启 Harness。
+
+## 2026-11-19 原作者署名、公开仓库与市场发布结果
+
+- 作品归属：工作台顶部常驻「原作者 蜗牛的科技笔记」，链接原作者公开主页；README、NOTICE 与 MIT LICENSE 均保留原作者署名。适配维护者为 `caisiyang123`。
+- 公开仓库：`https://github.com/caisiyang123/dsh-media-desk-bisheng`。
+- 最终包：`dsh-media-desk-bisheng@1.0.0`，Release 固定资产 `dsh-media-desk-bisheng.tgz`，SHA-256 `e2d154f6cbb111c104053978420c7a110b6ca0dbf165aa7bfa877064ad50b4e0`，大小 3,253,823 bytes。
+- 安装迁移：旧包 `dsh-media-desk` 已移除，新包安装到当前 profile；`desktop-workbenches/state.json` 的记录保留旧历史身份，但当前安装与 bundle 均为新包。业务数据目录 `dshHomePath('media-desk')` 未删除。
+- 重启后真实界面：成功打开「自媒体工作台 · BISHENG 版」，确认五个业务导航、示例数据、宿主原生 Chat 入口和顶部「原作者 蜗牛的科技笔记」。
+- 市场截图：`docs/images/bisheng-overview.jpg`，2848×1602、688,615 bytes，来自最终安装版本；已裁掉左侧个人会话和右侧聊天，只保留业务区与署名。
+- 市场投稿：PR [#87](https://github.com/dataelement/awesome-dsh-workbench/pull/87)，仅新增 `data/workbenches/caisiyang123__dsh-media-desk-bisheng.yml`。
+- 自动检查：`validate`、`Trusted catalog probe`、`Workbench security review`、`Run trusted security reviewer`、`Feishu workbench brief` 全部 SUCCESS。
+- 合并与发布：PR 于 2026-11-19T07:04:58Z 合并（merge commit `e39694d0`）；`Publish workbench index` 工作流 44476877809 成功。
+- 上架证据：线上 `https://market.dshdesktop.com/index.json` 已包含 `caisiyang123/dsh-media-desk-bisheng`，共 29 个工作台；版本 1.0.0、GitHub Release 分发、1 张截图、probe 状态 ok。
+- 仍需注意：未调用真实模型、生图、Monid 或发布平台；分隔条拖拽和真实 Agent 工具调用未形成完整 GUI 录屏，但代码级与真实加载测试已覆盖。市场页面已可见，不等于市场对后续版本的持续安全审计。

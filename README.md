@@ -157,7 +157,7 @@
 
 ## 三步上手（BISHENG 版）
 
-**1. 安装。** 本适配版的包名为 `dsh-media-desk-bisheng`，版本为 `1.0.0`。工作台市场审核通过后可直接在市场安装；当前也可从 GitHub Release 安装：
+**1. 安装。** 本适配版的包名为 `dsh-media-desk-bisheng`，版本为 `1.0.0`。已收录到工作台市场，可直接在 BISHENG 工作台市场安装；也可从 GitHub Release 安装：
 
 ```bash
 dsh plugin --profile web add https://github.com/caisiyang123/dsh-media-desk-bisheng/releases/latest/download/dsh-media-desk-bisheng.tgz

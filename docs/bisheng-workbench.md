@@ -7,6 +7,7 @@
 - 工作台规范：[2026-10-27 版](https://dshdesktop.com/workbench/docs/development.md)
 - 目标环境：BISHENG Desktop 1.2.0 / 内置 Harness `0.2.1-rc.2`（包范围 `>=0.2.1-rc.2 <0.3.0`）
 - 工作台名称：自媒体工作台 · BISHENG 版
+- 市场状态：已收录到工作台市场（PR #87；线上索引 29 条时已验证可见）
 
 工作台顶部常驻「原作者：蜗牛的科技笔记」署名并链接原作者主页。上游 npm 包 `dsh-media-desk` 与本适配包相互独立；本包通过 GitHub Release 发布。订阅生图工具按宿主能力软探测，不可用时继续使用原有 HTTP 图片 API 或纯文字封面，不把该能力当成加载前提。
 
